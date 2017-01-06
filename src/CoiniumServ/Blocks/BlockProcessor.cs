@@ -125,37 +125,43 @@ namespace CoiniumServ.Blocks
                 return;
             }
 
-            // get the generation transaction.
-            var genTx = GetGenerationTx(block);
-
-            if (genTx == null) // make sure we were able to read the generation transaction
-                return; // in case we have a null, status will be already decided by GetGenerationTx() function.
-
-            // get the output transaction that targets pools central wallet.
-            var poolOutput = genTx.GetPoolOutput(_poolConfig.Wallet.Adress, _poolAccount);
-
-            // make sure we have a valid reference to poolOutput
-            if (poolOutput == null)
+            if (!block.IsRelayBlock)
             {
-                block.Status = BlockStatus.Orphaned;
-                return;
-            }
+                // get the generation transaction.
+                var genTx = GetGenerationTx(block);
 
-            // set the reward of the block to miners.
-            block.Reward = (decimal) poolOutput.Amount;
+                if (genTx == null) // make sure we were able to read the generation transaction
+                    return; // in case we have a null, status will be already decided by GetGenerationTx() function.
 
-            // find the block status
-            switch (poolOutput.Category)
-            {
-                case "immature":
-                    block.Status = BlockStatus.Pending;
-                    break;
-                case "orphan":
+                // get the output transaction that targets pools central wallet.
+                var poolOutput = genTx.GetPoolOutput(_poolConfig.Wallet.Adress, _poolAccount);
+                // make sure we have a valid reference to poolOutput
+                if (poolOutput == null)
+                {
                     block.Status = BlockStatus.Orphaned;
-                    break;
-                case "generate":
-                    block.Status = BlockStatus.Confirmed;
-                    break;
+                    return;
+                }
+                // set the reward of the block to miners.
+                block.Reward = (decimal)poolOutput.Amount;
+
+                // find the block status
+                switch (poolOutput.Category)
+                {
+                    case "immature":
+                        block.Status = BlockStatus.Pending;
+                        break;
+                    case "orphan":
+                        block.Status = BlockStatus.Orphaned;
+                        break;
+                    case "generate":
+                        block.Status = BlockStatus.Confirmed;
+                        break;
+                }
+            }
+            else
+            {
+                block.Reward = block.Amount;
+                block.Status = BlockStatus.Confirmed;
             }
         }
 

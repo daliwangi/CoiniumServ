@@ -34,6 +34,7 @@ using CoiniumServ.Mining.Software;
 using CoiniumServ.Payments;
 using CoiniumServ.Pools;
 using CoiniumServ.Server.Web;
+using CoiniumServ.Relay;
 using Nancy.Bootstrapper;
 
 namespace CoiniumServ.Container.Registries
@@ -50,6 +51,7 @@ namespace CoiniumServ.Container.Registries
         public void RegisterInstances()
         {
             // per-pool objects
+            _applicationContext.Container.Register<IRelayTarget, RelayTarget>().AsMultiInstance();
             _applicationContext.Container.Register<IPool, Pool>().AsMultiInstance();
             _applicationContext.Container.Register<IDaemonClient, DaemonClient>().AsMultiInstance();
             _applicationContext.Container.Register<IJobTracker, JobTracker>().AsMultiInstance();

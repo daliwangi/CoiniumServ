@@ -66,7 +66,26 @@ namespace CoiniumServ.Cryptology.Merkle
         public MerkleTree(IEnumerable<byte[]> hashList)
         {
             Steps = CalculateSteps(hashList);
-        }       
+        }
+
+        /// <summary>
+        /// if it is a relay template,the steps don't need to be calculated again
+        /// </summary>
+        /// <param name="hashList"></param>
+        /// <param name="justSteps"></param>
+        public MerkleTree(IEnumerable<byte[]> hashList,bool justSteps)
+        {
+            if (justSteps)
+            {
+                var stepsList = new List<byte[]>();
+                stepsList.AddRange(hashList);
+                Steps = stepsList;
+            }
+            else
+                Steps = CalculateSteps(hashList);
+        }
+
+
 
         /// <summary>
         /// 

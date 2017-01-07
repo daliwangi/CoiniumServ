@@ -27,8 +27,11 @@ namespace CoiniumServ.Jobs.Manager
 {
     public interface IJobManager
     {
-        IExtraNonce ExtraNonce { get; }
+        IExtraNonce extraNonce { get; }
 
+        event EventHandler ForeignPoolSubscribed;
+
+        event EventHandler RelayingStopped;
         /// <summary>
         /// Initializes the specified pool.
         /// </summary>

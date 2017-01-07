@@ -53,6 +53,7 @@ using CoiniumServ.Utils.Metrics;
 using CoiniumServ.Vardiff;
 using Nancy.Bootstrapper;
 using Nancy.TinyIoc;
+using CoiniumServ.Relay;
 
 namespace CoiniumServ.Container
 {
@@ -94,6 +95,11 @@ namespace CoiniumServ.Container
         public ILogManager GetLogManager()
         {
             return _applicationContext.Container.Resolve<ILogManager>();
+        }
+
+        public IRelayManager GetRelayManager()
+        {
+            return _applicationContext.Container.Resolve<IRelayManager>();
         }
 
         public IDaemonManager GetPaymentDaemonManager()

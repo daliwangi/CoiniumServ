@@ -51,6 +51,7 @@ using CoiniumServ.Statistics;
 using CoiniumServ.Utils.Metrics;
 using CoiniumServ.Vardiff;
 using Nancy.Bootstrapper;
+using CoiniumServ.Relay;
 
 namespace CoiniumServ.Container
 {
@@ -65,6 +66,8 @@ namespace CoiniumServ.Container
         IStatisticsManager GetStatisticsManager();
 
         ILogManager GetLogManager();
+
+        IRelayManager GetRelayManager();
 
         IDaemonManager GetPaymentDaemonManager();
 

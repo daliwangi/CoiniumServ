@@ -122,6 +122,26 @@ namespace CoiniumServ.Coin.Coinbase
             return result;
         }
 
+        public static byte[] SerializeCoinbase(IJob job, string extraNonce1, UInt32 extraNonce2)
+        {
+            var extraNonce1Buffer = extraNonce1.HexToByteArray();
+            var extraNonce2Buffer = BitConverter.GetBytes(extraNonce2.BigEndian());
+
+            byte[] result;
+
+            using (var stream = new MemoryStream())
+            {
+                stream.WriteBytes(job.CoinbaseInitial.HexToByteArray());
+                stream.WriteBytes(extraNonce1Buffer);
+                stream.WriteBytes(extraNonce2Buffer);
+                stream.WriteBytes(job.CoinbaseFinal.HexToByteArray());
+
+                result = stream.ToArray();
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Encoded an integer to save space.
         /// </summary>

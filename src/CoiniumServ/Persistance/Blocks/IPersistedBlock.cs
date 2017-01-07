@@ -53,6 +53,8 @@ namespace CoiniumServ.Persistance.Blocks
         [JsonProperty("time")]
         DateTime CreatedAt { get; }
 
+        bool IsRelayBlock { get; }
+
         bool IsPending { get; }
     }
 }

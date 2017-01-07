@@ -46,7 +46,15 @@ namespace CoiniumServ.Persistance.Blocks
 
         public DateTime CreatedAt { get; private set; }
 
+        public bool IsRelayBlock { get; private set; }
+
         public bool IsPending { get { return Status != BlockStatus.Orphaned && Status != BlockStatus.Confirmed; } }
+
+        public PersistedBlock(Int32 height,Boolean orphaned,Boolean confirmed,Boolean accounted,string blockhash,string txhash,decimal amount,decimal reward,DateTime createdAt,Boolean isRelayBlock)
+            :this(height,orphaned,confirmed,accounted,blockhash,txhash,amount,reward,createdAt)
+        {
+            IsRelayBlock = isRelayBlock;
+        }
 
         public PersistedBlock(Int32 height, Boolean orphaned, Boolean confirmed, Boolean accounted, String blockHash, String txHash, Decimal amount, Decimal reward, DateTime createdAt)
         {

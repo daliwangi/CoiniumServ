@@ -48,10 +48,12 @@ namespace CoiniumServ.Mining
 
         T Create<T>(IPool pool) where T : IGetworkMiner;
 
-        T Create<T>(UInt32 extraNonce, IConnection connection, IPool pool) where T : IStratumMiner;
+        T Create<T>(string extraNonce, IConnection connection, IPool pool) where T : IStratumMiner;
 
         void Remove(IConnection connection);
 
         void Authenticate(IMiner miner);
+
+        void Remove(string userName);
     }
 }

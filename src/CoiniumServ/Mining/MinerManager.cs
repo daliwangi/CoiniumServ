@@ -100,7 +100,7 @@ namespace CoiniumServ.Mining
             return (T)miner;
         }
 
-        public T Create<T>(UInt32 extraNonce, IConnection connection, IPool pool) where T : IStratumMiner
+        public T Create<T>(string extraNonce, IConnection connection, IPool pool) where T : IStratumMiner
         {
             var @params = new object[]
             {
@@ -136,14 +136,31 @@ namespace CoiniumServ.Mining
                 _miners.Remove(miner.Id); // remove the miner.
         }
 
+        public void Remove(string userName)
+        {
+            // find the miner associated with the connection.
+            var miner = (from pair in _miners
+                         let client = (IStratumMiner)pair.Value
+                         where client.Username == userName
+                         select pair.Value).FirstOrDefault();
+
+            if (miner == null) // make sure the miner exists
+                return;
+
+            lock (_minersLock) // lock the list before we modify the collection.
+                _miners.Remove(miner.Id); // remove the miner.
+        }
+
         public void Authenticate(IMiner miner)
         {
             // if username validation is not on just authenticate the miner, else ask the current storage layer to do so.
             miner.Authenticated = !_poolConfig.Miner.ValidateUsername || _storageLayer.Authenticate(miner);
 
+            var stratuminer = (StratumMiner)miner;
+
             _logger.Debug(
-                miner.Authenticated ? "Authenticated miner: {0:l} [{1:l}]" : "Miner authentication failed: {0:l} [{1:l}]",
-                miner.Username, ((IClient) miner).Connection.RemoteEndPoint);
+                miner.Authenticated ? "Authenticated miner: {0:l} [{1:l}],extranonce1:{2:l}" : "Miner authentication failed: {0:l} [{1:l}],extranonce1:{2:l}",
+                miner.Username, ((IClient)miner).Connection.RemoteEndPoint, stratuminer.ExtraNonce);
 
             if (!miner.Authenticated) 
                 return;

@@ -38,6 +38,7 @@ using CoiniumServ.Utils.Helpers;
 using CoiniumServ.Utils.Platform;
 using libCoiniumServ.Versions;
 using Serilog;
+using CoiniumServ.Relay;
 
 namespace CoiniumServ.Configuration
 {
@@ -52,7 +53,9 @@ namespace CoiniumServ.Configuration
         public IMarketsConfig MarketsConfig { get; private set; }
 
         public ILogConfig LogConfig { get; private set; }
-        
+
+        public IRelayConfig RelayConfig { get; private set; }
+
         public List<IPoolConfig> PoolConfigs { get; private set; }
 
         public ISoftwareRepositoryConfig SoftwareRepositoryConfig { get; private set; }
@@ -100,6 +103,9 @@ namespace CoiniumServ.Configuration
             // load log config.
             LogConfig = new LogConfig(data.logging); // read the log config first, so rest of the config loaders can use log subsystem.
             _logManager.EmitConfiguration(LogConfig); // assign the log configuration to log manager.
+
+            //load relay config
+            RelayConfig = new RelayConfig(data.relay); //A static method in the RelayManager is used to change whether to relay at runtime.
 
             // print a version banner.
             _logger.Information("CoiniumServ {0:l} {1:l} warming-up..", VersionInfo.CodeName, Assembly.GetAssembly(typeof(Program)).GetName().Version);

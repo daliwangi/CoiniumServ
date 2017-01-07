@@ -30,6 +30,7 @@ using CoiniumServ.Pools;
 using CoiniumServ.Server.Stack;
 using CoiniumServ.Server.Web.Config;
 using CoiniumServ.Statistics;
+using CoiniumServ.Relay;
 
 namespace CoiniumServ.Configuration
 {
@@ -44,6 +45,8 @@ namespace CoiniumServ.Configuration
         IMarketsConfig MarketsConfig { get; }
 
         ILogConfig LogConfig { get; }
+
+        IRelayConfig RelayConfig { get; }
 
         List<IPoolConfig> PoolConfigs { get; }
 

@@ -41,7 +41,9 @@ namespace CoiniumServ.Jobs
 {
     public class Job : IJob
     {
-        public UInt64 Id { get; private set; }
+        public ulong Id { get; private set; }
+
+        public string RelayId { get; private set; }
 
         public int Height { get; private set; }
 
@@ -80,6 +82,35 @@ namespace CoiniumServ.Jobs
         /// </summary>
         private readonly IList<UInt64> _shares;
 
+        public Job(ulong jobNumber,int height, string id, string previousBlockHash, string coinbaseInitial, string coinbaseFinal,
+            BlockTemplateTransaction[] Transactions, string version, string encodedDiff, string nTime, bool cleanJobs ,
+            IHashAlgorithm hashAlgorithm)
+        {
+            Id = jobNumber;
+            Height = height;
+            RelayId = id;
+            PreviousBlockHash = previousBlockHash;
+            PreviousBlockHashReversed = PreviousBlockHash.HexToByteArray().ReverseByteOrder().ToHexString();
+            CoinbaseInitial = coinbaseInitial;
+            CoinbaseFinal = coinbaseFinal;
+            MerkleTree = new MerkleTree(Transactions.GetHashList(true),true);   //don't reverse bytes buffer here in GetHashList()
+            Version = version;
+            EncodedDifficulty = encodedDiff;
+            NTime = nTime;
+            CleanJobs = cleanJobs;
+            HashAlgorithm = hashAlgorithm;
+
+            _shares = new List<UInt64>();
+            CreationTime = TimeHelpers.NowInUnixTimestamp();
+
+            // set the target
+            Target = EncodedDifficulty.BigIntFromBitsHex();
+
+            // set the block diff
+            Difficulty = ((double)new BigRational(BigInteger.Parse("00000000ffff0000000000000000000000000000000000000000000000000000", NumberStyles.HexNumber), Target));
+
+        }
+
         /// <summary>
         /// Creates a new instance of JobNotification.
         /// </summary>
@@ -91,11 +122,12 @@ namespace CoiniumServ.Jobs
         {
             // init the values.
             Id = id;
+            RelayId = null;
             HashAlgorithm = algorithm;
             BlockTemplate = blockTemplate;
             Height = blockTemplate.Height;
             GenerationTransaction = generationTransaction;
-            PreviousBlockHash = blockTemplate.PreviousBlockHash.HexToByteArray().ToHexString();
+            PreviousBlockHash = blockTemplate.PreviousBlockHash;
             PreviousBlockHashReversed = blockTemplate.PreviousBlockHash.HexToByteArray().ReverseByteOrder().ToHexString();
             CoinbaseInitial = generationTransaction.Initial.ToHexString();
             CoinbaseFinal = generationTransaction.Final.ToHexString();
@@ -105,7 +137,7 @@ namespace CoiniumServ.Jobs
 
             // calculate the merkle tree
             MerkleTree = new MerkleTree(BlockTemplate.Transactions.GetHashList());
-        
+
             // set version
             Version = BitConverter.GetBytes(blockTemplate.Version.BigEndian()).ToHexString();
 
@@ -128,7 +160,7 @@ namespace CoiniumServ.Jobs
         {
             var data = new List<object>
             {
-                Id.ToString("x"),
+                string.IsNullOrEmpty(RelayId)?Id.ToString("x"):RelayId,
                 PreviousBlockHashReversed,
                 CoinbaseInitial,
                 CoinbaseFinal,

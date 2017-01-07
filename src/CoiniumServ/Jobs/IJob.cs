@@ -40,7 +40,9 @@ namespace CoiniumServ.Jobs
         /// <summary>
         /// ID of the job. Use this ID while submitting share generated from this job.
         /// </summary>
-        UInt64 Id { get; }
+        ulong Id { get; }
+
+        string RelayId { get; }
 
         /// <summary>
         /// Height of the block we are looking for.

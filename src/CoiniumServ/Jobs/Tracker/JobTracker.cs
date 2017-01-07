@@ -59,6 +59,18 @@ namespace CoiniumServ.Jobs.Tracker
             return _jobs.ContainsKey(id) ? _jobs[id] : null;
         }
 
+        public IJob Get(string relayId)
+        {
+            foreach(var Pair in _jobs)
+            {
+                if(Pair.Value.RelayId==relayId)
+                {
+                    return Pair.Value;
+                }
+            }
+            return null;
+        }
+
         public void Add(IJob job)
         {
             _jobs.Add(job.Id, job);
@@ -82,6 +94,38 @@ namespace CoiniumServ.Jobs.Tracker
                 _logger.Debug("Cleaned-up {0} expired jobs", cleanedCount);
 
             _cleanupTimer.Change(_cleanupFrequency * 1000, Timeout.Infinite); // reset the cleanup timer.
+        }
+
+        public IJob GetRecentCleanJob()
+        {
+            if (Current == null)
+                return null;
+            if (Current.CleanJobs == true)
+                return Current;
+            else
+            {
+                try
+                {
+                    ulong id = Current.Id;
+                    do
+                    {
+                        id--;
+                    } while (_jobs[id].CleanJobs != true);
+                    return _jobs[id];
+                }
+                catch(IndexOutOfRangeException e)
+                {
+                    _logger.Debug("Get recent clean==true job failed with index out of range,{0}."
+                        , e.Source);
+                    return null;
+                }
+                catch(Exception e)
+                {
+                    _logger.Debug("Get recent clean==true job failed with exception,{0}."
+                        , e.Source);
+                    return null;
+                }
+            }
         }
     }
 }

@@ -29,8 +29,11 @@ namespace CoiniumServ.Jobs.Tracker
     {
         IJob Get(UInt64 id);
 
+        IJob Get(string relayId);
+
         IJob Current { get; }
 
         void Add(IJob job);
+        IJob GetRecentCleanJob();
     }
 }

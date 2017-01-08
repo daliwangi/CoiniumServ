@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using CoiniumServ.Accounts;
 using CoiniumServ.Mining;
 using CoiniumServ.Payments;
+using CoiniumServ.Daemon.Responses;
 using CoiniumServ.Persistance.Blocks;
 using CoiniumServ.Persistance.Query;
 using CoiniumServ.Server.Mining.Stratum;
@@ -67,6 +68,11 @@ namespace CoiniumServ.Persistance.Layers.Null
         }
 
         public void AddBlock(IShare share)
+        {
+            return;
+        }
+
+        public void AddBlock(Block block, decimal revenue)
         {
             return;
         }
@@ -184,6 +190,21 @@ namespace CoiniumServ.Persistance.Layers.Null
         }
 
         public void DeleteExpiredHashrateData(int until)
+        {
+            return;
+        }
+
+        public ulong CalculateWorkerHashRate(int since, string workerId)
+        {
+            return 0;
+        }
+
+        public Dictionary<string, ulong> GetUserHashrateData(string UserName)
+        {
+            return null;
+        }
+
+        public void RecordWholeDay(string Username, ulong hashrate)
         {
             return;
         }

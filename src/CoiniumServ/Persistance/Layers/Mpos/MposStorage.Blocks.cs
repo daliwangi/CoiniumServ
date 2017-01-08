@@ -27,6 +27,7 @@ using System.Linq;
 using CoiniumServ.Persistance.Blocks;
 using CoiniumServ.Persistance.Query;
 using CoiniumServ.Shares;
+using CoiniumServ.Daemon.Responses;
 using Dapper;
 using MySql.Data.MySqlClient;
 
@@ -35,6 +36,11 @@ namespace CoiniumServ.Persistance.Layers.Mpos
     public partial class MposStorage
     {
         public void AddBlock(IShare share)
+        {
+            // this function is not supported as this functionality is handled by mpos itself.
+        }
+
+        public void AddBlock(Block block, decimal revenue)
         {
             // this function is not supported as this functionality is handled by mpos itself.
         }
@@ -119,6 +125,16 @@ namespace CoiniumServ.Persistance.Layers.Mpos
             }
 
             return blocks;
+        }
+
+        public ulong CalculateWorkerHashRate(int since, string workerId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Dictionary<string, ulong> GetUserHashrateData(string UserName)
+        {
+            throw new NotImplementedException();
         }
     }
 }

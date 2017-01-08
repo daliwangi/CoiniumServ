@@ -40,7 +40,7 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
                     return hashrates;
 
                 var key = string.Format("{0}:hashrate", _coin);
-                string[] results;
+                string[] results={null};
 
                 lock(_redisLock)
                 {
@@ -102,7 +102,7 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
                 if (!IsEnabled || !_redisProvider.IsConnected)
                     return 0;
 
-                string[] allHashrateTuples;
+                string[] allHashrateTuples={null};
                 lock (_redisLock)
                 {
                     var workerHashrateKey = string.Format("{0}:hashrate", _coin);
@@ -137,7 +137,7 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
             lock (_redisLock)
             {
                 var entry = string.Format("{0}:{1}:hashrate", UserName, _coin);
-                Dictionary<string, string> redisData;
+                Dictionary<string, string> redisData=new Dictionary<string,string>();
                 redisData = _redisProvider.Client.HGetAll(entry);
                 foreach (var pair in redisData)
                 {

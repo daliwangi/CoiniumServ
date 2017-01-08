@@ -126,5 +126,10 @@ namespace CoiniumServ.Persistance.Layers.Mpos
             // this function is not supported as this functionality is only required by payment processors which mpos itself is already one so and handles itself.
             throw new NotSupportedException();
         }
+
+        public void RecordWholeDay(string Username,ulong hashrate)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

@@ -35,5 +35,7 @@ namespace CoiniumServ.Server.Web.Models
         public IReadOnlyCollection<IHashAlgorithmStatistics> Algorithms { get; set; }
 
         public IStatisticsManager Statistics { get; set; }
+
+        public bool PPS { get; set; }
     }
 }

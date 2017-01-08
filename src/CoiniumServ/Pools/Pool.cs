@@ -384,7 +384,7 @@ namespace CoiniumServ.Pools
             {
                 HashrateRecords.Clear();
             }
-            catch(InvalidOperationException e)
+            catch(InvalidOperationException)
             {
                 _logger.Debug("Invalid operation when clearing hashrate cache.");
             }

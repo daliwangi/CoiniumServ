@@ -42,5 +42,21 @@ namespace CoiniumServ.Transactions.Utils
         {
             return transactions.Select(transaction => transaction.Hash.HexToByteArray().ReverseBuffer()).ToList();
         }
+
+        /// <summary>
+        /// this method is to be used in relay conditions where blocktemplate transactions are already reversed by foreign pools.
+        /// </summary>
+        /// <param name="transactions"></param>
+        /// <param name="donotReversebytes">if relaying,set it to true</param>
+        /// <returns></returns>
+        public static List<byte[]> GetHashList(this BlockTemplateTransaction[] transactions,bool donotReversebytes)
+        {
+            if (donotReversebytes)
+            {
+                return transactions.Select(transaction => transaction.Hash.HexToByteArray()).ToList();
+            }
+            else
+                return transactions.Select(transaction => transaction.Hash.HexToByteArray().ReverseBuffer()).ToList();
+        }
     }
 }

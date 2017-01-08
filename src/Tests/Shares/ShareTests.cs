@@ -175,11 +175,11 @@ namespace CoiniumServ.Tests.Shares
 
             // the job manager.
             _jobManager = Substitute.For<IJobManager>();
-            _jobManager.ExtraNonce.Next().Returns((UInt32)0x58000000);
+            _jobManager.extraNonce.Next().Returns((UInt32)0x58000000);
 
             // coin config
             _miner = Substitute.For<IStratumMiner>();
-            _miner.ExtraNonce.Returns((UInt32)0x58000000);
+            _miner.ExtraNonce.Returns("0x58000000");
         }
 
         [Fact]

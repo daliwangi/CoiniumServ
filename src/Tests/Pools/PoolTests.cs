@@ -26,6 +26,7 @@ using CoiniumServ.Container;
 using CoiniumServ.Daemon;
 using CoiniumServ.Daemon.Responses;
 using CoiniumServ.Pools;
+using CoiniumServ.Relay;
 using NSubstitute;
 using Should.Fluent;
 using Xunit;
@@ -39,6 +40,7 @@ namespace CoiniumServ.Tests.Pools
         private readonly IDaemonClient _daemonClient;
         private readonly IConfigManager _configManager;
         private readonly IPoolConfig _config;
+        private readonly IRelayManager _relayManager;
 
         /// <summary>
         /// Initialize mock objects.
@@ -50,6 +52,8 @@ namespace CoiniumServ.Tests.Pools
 
             // config-manager mockup
             _configManager = Substitute.For<IConfigManager>();
+
+            _relayManager = Substitute.For<IRelayManager>();
 
             // pool-config mockup.
             _config = Substitute.For<IPoolConfig>();
@@ -68,10 +72,10 @@ namespace CoiniumServ.Tests.Pools
         [Fact]
         public void ConstructorTest_NonNullParams_ShouldSuccess()
         {
-            var pool = new Pool(_config,_configManager, _objectFactory); // create the pool instance.
+            var pool = new Pool(_config, _configManager, _relayManager, _objectFactory); // create the pool instance.
 
             pool.Should().Not.Be.Null();
-            //pool.InstanceId.Should().Be.GreaterThan((UInt32)0); // pool should be already created an instance id.
+            pool.InstanceId.Should().Be.GreaterThan((UInt32)0); // pool should be already created an instance id.
         }
 
         /// <summary>
@@ -82,17 +86,17 @@ namespace CoiniumServ.Tests.Pools
         {
             Assert.Throws<ArgumentNullException>(() =>
             {
-                new Pool(null, _configManager, _objectFactory);
+                new Pool(null, _configManager,_relayManager, _objectFactory);
             }).Message.Should().Contain("poolConfig");
 
             Assert.Throws<ArgumentNullException>(() =>
             {
-                new Pool(_config, null, _objectFactory);
+                new Pool(_config, null,_relayManager, _objectFactory);
             }).Message.Should().Contain("configManager");
 
             Assert.Throws<ArgumentNullException>(() =>
             {
-                new Pool(_config, _configManager, null);
+                new Pool(_config, _configManager,_relayManager, null);
             }).Message.Should().Contain("objectFactory");
         }
     }

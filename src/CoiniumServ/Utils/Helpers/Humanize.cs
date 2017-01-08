@@ -73,5 +73,21 @@ namespace CoiniumServ.Utils.Helpers
 
             return string.Format("{0:0.00} {1}", rate, units[index]);
         }
+
+        public static string GetReadableHashrateModified(this UInt64 hashrate)
+        {
+            var index = -1;
+            double rate = hashrate * 1.03;
+
+            var units = new[] { "KH/s", "MH/s", "GH/s", "TH/s", "PH/s", "EH/s", "ZH/s", "YH/s" };
+
+            do
+            {
+                rate = rate / 1000;
+                index++;
+            } while (rate > 1000);
+
+            return string.Format("{0:0.00} {1}", rate, units[index]);
+        }
     }
 }

@@ -87,7 +87,7 @@ namespace CoiniumServ.Server.Mining.Stratum
         /// <summary>
         /// Hex-encoded, per-connection unique string which will be used for coinbase serialization later. (http://mining.bitcoin.cz/stratum-mining)
         /// </summary>
-        public uint ExtraNonce { get; private set; }
+        public string ExtraNonce { get; private set; }
 
         public int LastVardiffTimestamp { get; set; }
 
@@ -118,7 +118,7 @@ namespace CoiniumServ.Server.Mining.Stratum
         /// <param name="pool"></param>
         /// <param name="minerManager"></param>
         /// <param name="storageLayer"></param>
-        public StratumMiner(int id, UInt32 extraNonce, IConnection connection, IPool pool, IMinerManager minerManager, IStorageLayer storageLayer)
+        public StratumMiner(int id, string extraNonce, IConnection connection, IPool pool, IMinerManager minerManager, IStorageLayer storageLayer)
         {
             Id = id; // the id of the miner.
             ExtraNonce = extraNonce;
@@ -294,6 +294,18 @@ namespace CoiniumServ.Server.Mining.Stratum
             Send(notification);
         }
 
+        public void SendExtraNonceInfo(string extraNonce1,uint extraNonce2Size)
+        {
+            var setExtraNonce=new JsonRequest
+            {
+                Id=null,
+                Method="mining.set_extranonce",
+                Params=new List<object>{extraNonce1,extraNonce2Size}
+            };
+
+            Send(setExtraNonce);
+        }
+
         private void Send(JsonRequest request)
         {
             var json = JsonConvert.SerializeObject(request) + "\n";
@@ -302,6 +314,11 @@ namespace CoiniumServ.Server.Mining.Stratum
             Connection.Send(data);
 
             _packetLogger.Verbose("tx: {0}", data.ToEncodedString().PrettifyJson());
+        }
+
+        public void setRelayExtraNonce1(string xNonce1)
+        {
+            ExtraNonce = xNonce1;
         }
     }
 }

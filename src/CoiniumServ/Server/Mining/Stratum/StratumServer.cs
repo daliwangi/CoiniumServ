@@ -29,7 +29,10 @@ using CoiniumServ.Jobs.Manager;
 using CoiniumServ.Mining;
 using CoiniumServ.Pools;
 using CoiniumServ.Server.Mining.Stratum.Sockets;
+using CoiniumServ.Server.Mining.Stratum.Responses;
 using Serilog;
+using CoiniumServ.Relay;
+using CoiniumServ.Utils.Extensions;
 
 // stratum server uses json-rpc 2.0 (over raw sockets) & json-rpc.net (http://jsonrpc2.codeplex.com/)
 // classic server handles getwork & getblocktemplate miners over http.
@@ -51,6 +54,8 @@ namespace CoiniumServ.Server.Mining.Stratum
 
         private readonly IBanManager _banManager;
 
+        private readonly IRelayManager _relayManager;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="StratumServer"/> class.
         /// </summary>
@@ -59,13 +64,14 @@ namespace CoiniumServ.Server.Mining.Stratum
         /// <param name="jobManager"></param>
         /// <param name="banManager"></param>
         /// <param name="poolConfig"></param>
-        public StratumServer(IPoolConfig poolConfig, IPool pool, IMinerManager minerManager, IJobManager jobManager, IBanManager banManager)
+        public StratumServer(IPoolConfig poolConfig, IPool pool, IMinerManager minerManager, IJobManager jobManager, IBanManager banManager,IRelayManager relayManager)
         {
             _pool = pool;
             _minerManager = minerManager;
             _jobManager = jobManager;
             _banManager = banManager;
             _logger = Log.ForContext<StratumServer>().ForContext("Component", poolConfig.Coin.Name);
+            _relayManager = relayManager;
         }
 
         /// <summary>
@@ -78,6 +84,9 @@ namespace CoiniumServ.Server.Mining.Stratum
             BindInterface = config.BindInterface;
             Port = config.Port;
 
+            _jobManager.ForeignPoolSubscribed += DisconnectAllWhenStartRelaying;
+            _jobManager.RelayingStopped += DisconnectAllWhenStopRelaying;
+            _relayManager.UpstreamPoolIdle += DisconnectAllWhenUpstreamIdle;
             ClientConnected += OnClientConnection;
             ClientDisconnected += OnClientDisconnect;
             BannedConnection += OnBannedConnection;
@@ -127,8 +136,28 @@ namespace CoiniumServ.Server.Mining.Stratum
             _logger.Debug("Stratum client connected: {0}", e.Connection.ToString());
 
             // TODO: remove the jobManager dependency by instead injecting extranonce counter.
-            var miner = _minerManager.Create<StratumMiner>(_jobManager.ExtraNonce.Next(), e.Connection, _pool);
-            e.Connection.Client = miner;           
+            if (RelayManager.IsRelaying == true)
+            {
+                if (_relayManager.extraNonce1 == "ffff0000")
+                {
+                    _relayManager.Subscribe();
+                    _logger.Debug("foreigh pool extra nonce1 retreived:{0},extra nonce 2 size retreived:{1}.", _relayManager.extraNonce1, _relayManager.extraNonce2Size);
+                    _relayManager.FormatExtraNonce();
+                }
+                else _logger.Debug("Formatted extra nonce is:{0},extra nonce 2 size is:{1}.", _relayManager.FormattedXNonce1, _relayManager.FormattedXNonce2Size);
+
+                UInt64 xNonce1 = _relayManager.FormattedXNonce1++;
+                string xNonce1String = _relayManager.XNonce1Prefix + xNonce1.NumberToFixedBytes(_relayManager.TotalExtraNonceSize -
+                    (int)_relayManager.FormattedXNonce2Size - _relayManager.XNonce1Prefix.Length / 2).ToHexString();
+                var miner = _minerManager.Create<StratumMiner>(xNonce1String, e.Connection, _pool);
+                _logger.Debug("Miner created,extranonce1:{0}.", miner.ExtraNonce);
+                e.Connection.Client = miner;
+            }
+            else
+            {
+                var miner = _minerManager.Create<StratumMiner>(BitConverter.GetBytes(_jobManager.extraNonce.Next()).ReverseBuffer().ToHexString(), e.Connection, _pool);
+                e.Connection.Client = miner;
+            }
         }
 
         /// <summary>
@@ -163,6 +192,21 @@ namespace CoiniumServ.Server.Mining.Stratum
                 return;
 
             ((StratumMiner) connection.Client).Parse(e);
+        }
+
+        private void DisconnectAllWhenStartRelaying(object obj, EventArgs e)
+        {
+            this.DisconnectAll();
+        }
+
+        private void DisconnectAllWhenStopRelaying(object obj,EventArgs e)
+        {
+            this.DisconnectAll();
+        }
+
+        private void DisconnectAllWhenUpstreamIdle(object obj, EventArgs e)
+        {
+            this.DisconnectAll();
         }
     }
 }

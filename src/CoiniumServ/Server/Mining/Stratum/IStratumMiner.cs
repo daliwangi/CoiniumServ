@@ -35,7 +35,7 @@ namespace CoiniumServ.Server.Mining.Stratum
         /// <summary>
         /// Hex-encoded, per-connection unique string which will be used for coinbase serialization later. (http://mining.bitcoin.cz/stratum-mining)
         /// </summary>
-        UInt32 ExtraNonce { get; }
+        string ExtraNonce { get; }
 
         /// <summary>
         /// Is the miner subscribed?
@@ -62,6 +62,10 @@ namespace CoiniumServ.Server.Mining.Stratum
         /// </summary>
         void SendJob(IJob job);
 
+        void SendExtraNonceInfo(string extraNonce1, uint extraNonce2Size);
+
         void Subscribe(string signature);
+
+        void setRelayExtraNonce1(string xNonce1);
     }
 }

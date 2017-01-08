@@ -29,6 +29,7 @@ using CoiniumServ.Daemon;
 using CoiniumServ.Mining;
 using CoiniumServ.Payments;
 using CoiniumServ.Server.Web.Service;
+using CoiniumServ.Server.Web.Models.Pool;
 using Newtonsoft.Json;
 
 namespace CoiniumServ.Pools
@@ -74,5 +75,15 @@ namespace CoiniumServ.Pools
         IAccountManager AccountManager { get; }
 
         void Initialize();
+
+        void Start();
+
+        void Stop();
+
+        ulong CalculateWorkerHashRate(string workerId);
+
+        Dictionary<string, ulong> GetUserHashrateData(string workerId);
+
+        Dictionary<string, WorkerHashrateModel> HashrateRecords { get; set; }
     }
 }

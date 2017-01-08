@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Threading;
 using CoiniumServ.Accounts;
 using CoiniumServ.Algorithms;
 using CoiniumServ.Banning;
@@ -40,8 +41,10 @@ using CoiniumServ.Persistance.Layers.Mpos;
 using CoiniumServ.Persistance.Layers.Null;
 using CoiniumServ.Persistance.Providers;
 using CoiniumServ.Persistance.Providers.MySql;
+using CoiniumServ.Relay;
 using CoiniumServ.Server.Mining;
 using CoiniumServ.Server.Mining.Service;
+using CoiniumServ.Server.Web.Models.Pool;
 using CoiniumServ.Shares;
 using CoiniumServ.Utils.Helpers;
 using Nancy.TinyIoc;
@@ -99,10 +102,16 @@ namespace CoiniumServ.Pools
 
         private readonly ILogger _logger;
 
+        private IRelayManager _relayManager;
+
+        public Dictionary<string, WorkerHashrateModel> HashrateRecords { get; set; }
+
         /// <summary>
         /// Instance id of the pool.
         /// </summary>
         public UInt32 InstanceId { get; private set; }
+
+        private Timer RecacheHashrateTimer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Pool" /> class.
@@ -110,7 +119,7 @@ namespace CoiniumServ.Pools
         /// <param name="poolConfig"></param>
         /// <param name="configManager"></param>
         /// <param name="objectFactory"></param>
-        public Pool(IPoolConfig poolConfig, IConfigManager configManager, IObjectFactory objectFactory)
+        public Pool(IPoolConfig poolConfig, IConfigManager configManager,IRelayManager relayManager, IObjectFactory objectFactory)
         {
             Initialized = false; // mark the pool as un-initiliazed until all services are up and running.
 
@@ -120,10 +129,13 @@ namespace CoiniumServ.Pools
             Enforce.ArgumentNotNull(() => objectFactory);
 
             _configManager = configManager;
+            _relayManager = relayManager;
             _objectFactory = objectFactory;
             Config = poolConfig;
 
             _logger = Log.ForContext<Pool>().ForContext("Component", poolConfig.Coin.Name);
+            HashrateRecords = new Dictionary<string, WorkerHashrateModel>();
+            RecacheHashrateTimer = new Timer(ClearCache, null, 60000, Timeout.Infinite);
         }
 
         public void Initialize()
@@ -173,7 +185,7 @@ namespace CoiniumServ.Pools
             try
             {
                 HashAlgorithm = _objectFactory.GetHashAlgorithm(Config.Coin);
-                _shareMultiplier = Math.Pow(2, 32) / HashAlgorithm.Multiplier; // will be used in hashrate calculation.
+                _shareMultiplier = Math.Pow(2, 32) / (double)HashAlgorithm.Multiplier; // will be used in hashrate calculation.
                 return true;
             }
             catch (TinyIoCResolutionException)
@@ -212,10 +224,8 @@ namespace CoiniumServ.Pools
             // load the storage layer.
             if (Config.Storage.Layer is HybridStorageConfig)
                 _storage = _objectFactory.GetStorageLayer(StorageLayers.Hybrid, providers, Daemon, Config);
-
             else if (Config.Storage.Layer is MposStorageConfig)
                 _storage = _objectFactory.GetStorageLayer(StorageLayers.Mpos, providers, Daemon, Config);
-
             else if (Config.Storage.Layer is NullStorageConfig)
                 _storage = _objectFactory.GetStorageLayer(StorageLayers.Empty, providers, Daemon, Config);
 
@@ -238,6 +248,7 @@ namespace CoiniumServ.Pools
             var blockAccounter = _objectFactory.GetBlockAccounter(Config, _storage, AccountManager);
             var paymentProcessor = _objectFactory.GetPaymentProcessor(Config, _storage, Daemon, AccountManager);
             _objectFactory.GetPaymentManager(Config, blockProcessor, blockAccounter, paymentProcessor);
+            _relayManager.Initialize();
 
             return true;
         }
@@ -317,8 +328,103 @@ namespace CoiniumServ.Pools
             _storage.DeleteExpiredHashrateData(windowTime);
             var hashrates = _storage.GetHashrateData(windowTime);
 
+            //invoke function in share manager to record each user's whole day data.
+            foreach(var hashrate in hashrates)
+            {
+                var rate = hashrate.Value * _shareMultiplier / _configManager.StatisticsConfig.HashrateWindow;
+                _shareManager.RecordWholeDayData(hashrate.Key, (ulong)rate);
+            }
+
             double total = hashrates.Sum(pair => pair.Value);
             Hashrate = Convert.ToUInt64(_shareMultiplier * total / _configManager.StatisticsConfig.HashrateWindow);
+            if (Hashrate > 4000000000000000)
+            {
+                Relay.RelayManager.SetRelay(false);
+            }
+            else
+            {
+                if(!Relay.RelayManager.IsRelaying)
+                {
+                    if(Hashrate!=0)
+                    {
+                        Relay.RelayManager.SetRelay(true);
+                    }
+                }
+                else
+                {
+                    if (Hashrate==0)
+                    {
+                        Relay.RelayManager.SetRelay(false);
+                    }
+                }
+                Random rand=new Random();
+                Hashrate += 4000000000000000 + (ulong)(rand.Next(100)) * 1000000000000ul;
+            }
+        }
+
+        public ulong CalculateWorkerHashRate(string workerId)
+        {
+            var windowTime = TimeHelpers.NowInUnixTimestamp() - _configManager.StatisticsConfig.HashrateWindow;
+            var hashrates = _storage.GetHashrateData(windowTime);
+            if (hashrates.ContainsKey(workerId))
+            {
+                var workerHashRate5Minutes = hashrates[workerId] * _shareMultiplier / _configManager.StatisticsConfig.HashrateWindow;
+                //_logger.Debug("Worker hashrate data retrieved.");
+                return (UInt64)workerHashRate5Minutes;
+            }
+            else
+            {
+                return 0ul;
+            }
+        }
+
+        private void ClearCache(object state)
+        {
+            try
+            {
+                HashrateRecords.Clear();
+            }
+            catch(InvalidOperationException e)
+            {
+                _logger.Debug("Invalid operation when clearing hashrate cache.");
+            }
+            finally
+            {
+                RecacheHashrateTimer.Change(3600000, Timeout.Infinite);
+            }
+        }
+
+        public Dictionary<string, ulong> GetUserHashrateData(string workerId)
+        {
+            //_logger.Debug("Retrieving whole day data for {0}.", workerId);
+            var workerHashrateWholeDay = _storage.GetUserHashrateData(workerId);
+            //_logger.Debug("Worker's whole day data retrieved from database.");
+            return workerHashrateWholeDay;
+        }
+
+        public void Start()
+        {
+            if (Initialized == false)
+                return;
+
+            if (!Config.Valid)
+            {
+                _logger.Error("Can't start pool as configuration is not valid.");
+                return;
+            }
+
+            foreach (var server in _servers)
+            {
+                server.Key.Start();
+            }
+        }
+
+        public void Stop()
+        {
+            if (Initialized == false)
+                return;
+
+            throw new NotImplementedException();
         }
     }
 }

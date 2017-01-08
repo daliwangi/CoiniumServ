@@ -52,7 +52,7 @@ namespace CoiniumServ.Pools
         /// Reward for next block in coins.
         /// </summary>
         [JsonProperty("reward")]
-        UInt64 Reward { get; }
+        double Reward { get; }
 
         /// <summary>
         /// Coin version.

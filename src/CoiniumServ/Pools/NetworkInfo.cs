@@ -39,7 +39,7 @@ namespace CoiniumServ.Pools
 
         public ulong Hashrate { get; private set; }
 
-        public UInt64 Reward { get; private set; }
+        public double Reward { get; private set; }
 
         public string CoinVersion { get; private set; }
 
@@ -122,7 +122,7 @@ namespace CoiniumServ.Pools
             try // read getblocktemplate() based data.
             {
                 var blockTemplate = _daemonClient.GetBlockTemplate(_poolConfig.Coin.Options.BlockTemplateModeRequired);
-                Reward = (UInt64)blockTemplate.Coinbasevalue / 100000000; // coinbasevalue is in satoshis, convert it to actual coins.
+                Reward = ((double)blockTemplate.Coinbasevalue) / (double)100000000; // coinbasevalue is in satoshis, convert it to actual coins.
             }
             catch (RpcException e)
             {

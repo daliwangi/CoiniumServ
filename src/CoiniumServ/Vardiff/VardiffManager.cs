@@ -26,6 +26,7 @@ using CoiniumServ.Pools;
 using CoiniumServ.Shares;
 using CoiniumServ.Utils.Buffers;
 using CoiniumServ.Utils.Helpers;
+using CoiniumServ.Relay;
 using Serilog;
 
 namespace CoiniumServ.Vardiff
@@ -38,9 +39,12 @@ namespace CoiniumServ.Vardiff
         private readonly float _tMin;
         private readonly float _tMax;
         private readonly ILogger _logger;
+        private readonly IRelayManager _relayManager;
 
-        public VardiffManager(IPoolConfig poolConfig, IShareManager shareManager)
+        public VardiffManager(IPoolConfig poolConfig, IShareManager shareManager,
+            IRelayManager relayManager)
         {
+            _relayManager = relayManager;
             _logger = Log.ForContext<VardiffManager>().ForContext("Component", poolConfig.Coin.Name);
 
             Config = poolConfig.Stratum.Vardiff;
@@ -60,7 +64,13 @@ namespace CoiniumServ.Vardiff
         {
             var shareArgs = (ShareEventArgs) e;
             var miner = shareArgs.Miner;
-
+            if (RelayManager.IsRelaying && _relayManager.ExternalDiff > 0 &&
+                (double)miner.Difficulty > _relayManager.ExternalDiff)
+            {
+                miner.SetDifficulty((float)(_relayManager.ExternalDiff * 0.5));
+                miner.VardiffBuffer.Clear();
+                return;
+            }
             if (miner == null)
                 return;
 
@@ -99,6 +109,14 @@ namespace CoiniumServ.Vardiff
                 return;
 
             var newDifficulty = miner.Difficulty*deltaDiff; // calculate the new difficulty.
+            if (RelayManager.IsRelaying && _relayManager.ExternalDiff > 0)
+            {
+                if ((double)newDifficulty > _relayManager.ExternalDiff)
+                {
+                    miner.VardiffBuffer.Clear();
+                    return;
+                }
+            }
             miner.SetDifficulty(newDifficulty); // set the new difficulty and send it.
             _logger.Debug("Difficulty updated to {0} for miner: {1:l}", miner.Difficulty, miner.Username);
 

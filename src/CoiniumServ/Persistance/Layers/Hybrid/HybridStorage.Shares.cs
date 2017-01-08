@@ -43,28 +43,27 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
                 if (!IsEnabled || !_redisProvider.IsConnected)
                     return;
 
-                //_client.StartPipe(); // batch the commands.
-
-                // add the share to round 
-                var currentKey = string.Format("{0}:shares:round:current", _coin);
-                var miner = (IStratumMiner)share.Miner;
-                _redisProvider.Client.HIncrByFloat(currentKey, miner.Username, (double)miner.Difficulty);
-
-                // increment shares stats.
-                var statsKey = string.Format("{0}:stats", _coin);
-                _redisProvider.Client.HIncrBy(statsKey, share.IsValid ? "validShares" : "invalidShares", 1);
-
-                // add to hashrate
-                if (share.IsValid)
+                lock(_redisLock)
                 {
-                    var hashrateKey = string.Format("{0}:hashrate", _coin);
-                    var randomModifier = Convert.ToString(miner.ValidShareCount, 16).PadLeft(8, '0');
-                    string modifiedUsername = miner.Username + randomModifier;
-                    var entry = string.Format("{0}:{1}", (double)miner.Difficulty, modifiedUsername);
-                    _redisProvider.Client.ZAdd(hashrateKey, Tuple.Create(TimeHelpers.NowInUnixTimestamp(), entry));
-                }
+                    // add the share to round
+                    var currentKey = string.Format("{0}:shares:round:current", _coin);
+                    var miner = (IStratumMiner)share.Miner;
+                    _redisProvider.Client.HIncrByFloat(currentKey, miner.Username, (double)miner.Difficulty);
 
-                //_client.EndPipe(); // execute the batch commands.
+                    // increment shares stats.
+                    var statsKey = string.Format("{0}:stats", _coin);
+                    _redisProvider.Client.HIncrBy(statsKey, share.IsValid ? "validShares" : "invalidShares", 1);
+
+                    // add to hashrate
+                    if (share.IsValid)
+                    {
+                        var hashrateKey = string.Format("{0}:hashrate", _coin);
+                        var randomModifier = Convert.ToString(miner.ValidShareCount, 16).PadLeft(8, '0');
+                        string modifiedUsername = miner.Username + randomModifier;
+                        var entry = string.Format("{0}:{1}", (double)miner.Difficulty, modifiedUsername);
+                        _redisProvider.Client.ZAdd(hashrateKey, Tuple.Create(TimeHelpers.NowInUnixTimestamp(), entry));
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -161,7 +160,7 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
                     return shares;
 
                 var key = string.Format("{0}:shares:round:{1}", _coin, "current");
-                Dictionary<string, string> hashes;
+                Dictionary<string, string> hashes=new Dictionary<string,string>();
                 lock(_redisLock)
                 {
                     hashes = _redisProvider.Client.HGetAll(key);
@@ -189,7 +188,12 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
                     return shares;
 
                 var key = string.Format("{0}:shares:round:{1}", _coin, block.Height);
-                var hashes = _redisProvider.Client.HGetAll(key);
+
+                Dictionary<string, string> hashes = new Dictionary<string, string>();
+                lock(_redisLock)
+                {
+                    hashes = _redisProvider.Client.HGetAll(key);
+                }
 
                 foreach (var hash in hashes)
                 {

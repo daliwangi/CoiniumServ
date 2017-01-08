@@ -173,6 +173,16 @@
     <Compile Include="Persistance\Layers\Hybrid\Migrations\M003FixDefaults.cs" />
     <Compile Include="Pools\IProfitInfo.cs" />
     <Compile Include="Pools\ProfitInfo.cs" />
+    <Compile Include="Relay\IRelayConfig.cs" />
+    <Compile Include="Relay\IRelayManager.cs" />
+    <Compile Include="Relay\IRelayShare.cs" />
+    <Compile Include="Relay\IRelayTarget.cs" />
+    <Compile Include="Relay\RelayConfig.cs" />
+    <Compile Include="Relay\RelayManager.cs" />
+    <Compile Include="Relay\RelayShare.cs" />
+    <Compile Include="Relay\RelayTarget.cs" />
+    <Compile Include="Server\Commands\Relay.cs" />
+    <Compile Include="Server\Web\Models\Pool\WorkerHashrateModel.cs" />
     <Compile Include="Server\Web\Modules\TosModule.cs" />
     <Compile Include="Utils\Extensions\LinqExtensions.cs" />
     <Compile Include="Utils\Helpers\Humanize.cs" />

@@ -50,9 +50,12 @@ namespace CoiniumServ.Daemon
     {
         public static readonly object[] EmptyString = {}; // used as empty parameter.
 
+        private object _requestLock;
         public DaemonClient(IDaemonConfig daemonConfig, ICoinConfig coinConfig, IRpcExceptionFactory rpcExceptionFactory)
             : base(daemonConfig, coinConfig, rpcExceptionFactory)
-        { }
+        {
+            _requestLock = new object();
+        }
 
         /// <summary>
         /// Version 0.8: Attempts add or remove node from the addnode list or try a connection to node once.
@@ -63,7 +66,10 @@ namespace CoiniumServ.Daemon
         /// <returns>The created multi signature address.</returns>
         public string AddMultiSigAddress(int nRquired, List<string> publicKeys, string account)
         {
-            return MakeRequest<string>("addmultisigaddress", nRquired, publicKeys, account);
+            lock(_requestLock)
+            {
+                return MakeRequest<string>("addmultisigaddress", nRquired, publicKeys, account);
+            }
         }
 
         /// <summary>
@@ -145,7 +151,10 @@ namespace CoiniumServ.Daemon
         /// <returns>The account the given address belongs to.</returns>
         public string GetAccount(string bitcoinAddress)
         {
-            return MakeRequest<string>("getaccount", bitcoinAddress);
+            lock(_requestLock)
+            {
+                return MakeRequest<string>("getaccount", bitcoinAddress);
+            }
         }
 
         /// <summary>
@@ -193,9 +202,12 @@ namespace CoiniumServ.Daemon
         /// <returns>The balance of the account or the total wallet.</returns>
         public decimal GetBalance(string account = "")
         {
-            return string.IsNullOrEmpty(account)
+            lock(_requestLock)
+            {
+                return string.IsNullOrEmpty(account)
                 ? MakeRequest<decimal>("getbalance", EmptyString)
                 : MakeRequest<decimal>("getbalance", account);
+            }
         }
 
         /// <summary>
@@ -214,7 +226,10 @@ namespace CoiniumServ.Daemon
         /// <returns>Information about the block.</returns>
         public Block GetBlock(string hash)
         {
-            return MakeRequest<Block>("getblock", hash);
+            lock(_requestLock)
+            {
+                return MakeRequest<Block>("getblock", hash);
+            }
         }
 
         /// <summary>
@@ -223,7 +238,10 @@ namespace CoiniumServ.Daemon
         /// <returns>The number of blocks in the longest block chain.</returns>
         public long GetBlockCount()
         {
-            return MakeRequest<long>("getblockcount", null);
+            lock(_requestLock)
+            {
+                return MakeRequest<long>("getblockcount", null);
+            }
         }
 
         /// <summary>
@@ -233,7 +251,10 @@ namespace CoiniumServ.Daemon
         /// <returns>The hash of the block at the given index.</returns>
         public string GetBlockHash(long index)
         {
-            return MakeRequest<string>("getblockhash", index);
+            lock(_requestLock)
+            {
+                return MakeRequest<string>("getblockhash", index);
+            }
         }
 
         [Obsolete("Deprecated. Removed in version 0.7. Use getblockcount.")]
@@ -260,8 +281,10 @@ namespace CoiniumServ.Daemon
                 // peercoin variants instead require mode: https://github.com/Peerunity/Peerunity/blob/master/src/bitcoinrpc.cpp#L2206
                 data.Add("mode", "template");
             }
-
-            return MakeRequest<BlockTemplate>("getblocktemplate", data);
+            lock(_requestLock)
+            {
+                return MakeRequest<BlockTemplate>("getblocktemplate", data);
+            }
         }
 
         /// <summary>
@@ -276,8 +299,10 @@ namespace CoiniumServ.Daemon
                 {"mode", "submit"},
                 {"data", blockHex}
             };
-
-            return MakeRequest<BlockTemplate>("getblocktemplate", data);
+            lock(_requestLock)
+            {
+                return MakeRequest<BlockTemplate>("getblocktemplate", data);
+            }
         }
 
         /// <summary>
@@ -285,7 +310,10 @@ namespace CoiniumServ.Daemon
         /// </summary>
         public string SubmitBlock(string blockHex)
         {
-            return MakeRequest<string>("submitblock", blockHex);
+            lock(_requestLock)
+            {
+                return MakeRequest<string>("submitblock", blockHex);
+            }
         }
 
         /// <summary>
@@ -330,7 +358,10 @@ namespace CoiniumServ.Daemon
         /// <returns>An object containing some general information.</returns>
         public Info GetInfo()
         {
-            return MakeRequest<Info>("getinfo", null);
+            lock(_requestLock)
+            {
+                return MakeRequest<Info>("getinfo", null);
+            }
         }
 
         [Obsolete("Replaced in v0.7.0 with getblocktemplate, submitblock, getrawmempool")]
@@ -345,7 +376,10 @@ namespace CoiniumServ.Daemon
         /// <returns>An object containing mining information.</returns>
         public MiningInfo GetMiningInfo()
         {
-            return MakeRequest<MiningInfo>("getmininginfo", null);
+            lock(_requestLock)
+            {
+                return MakeRequest<MiningInfo>("getmininginfo", null);
+            }
         }
 
         /// <summary>
@@ -450,7 +484,10 @@ namespace CoiniumServ.Daemon
         /// <returns>An object containg transaction information.</returns>
         public Transaction GetTransaction(string txId)
         {
-            return MakeRequest<Transaction>("gettransaction", txId);
+            lock(_requestLock)
+            {
+                return MakeRequest<Transaction>("gettransaction", txId);
+            }
         }
 
         /// <summary>
@@ -484,7 +521,10 @@ namespace CoiniumServ.Daemon
         /// </summary>
         public Getwork Getwork()
         {
-            return MakeRequest<Getwork>("getwork", null);   
+            lock(_requestLock)
+            {
+                return MakeRequest<Getwork>("getwork", null);
+            }
         }
 
         /// <summary>
@@ -494,7 +534,10 @@ namespace CoiniumServ.Daemon
         /// <returns></returns>
         public bool Getwork(string data)
         {
-            return MakeRequest<bool>("getwork", data);
+            lock(_requestLock)
+            {
+                return MakeRequest<bool>("getwork", data);
+            }
         }
 
         /// <summary>
@@ -524,7 +567,10 @@ namespace CoiniumServ.Daemon
         /// <returns>A dictionary with account names as keys and account balances as values.</returns>
         public Dictionary<string, decimal> ListAccounts()
         {
-            return MakeRequest<Dictionary<string, decimal>>("listaccounts", null);
+            lock(_requestLock)
+            {
+                return MakeRequest<Dictionary<string, decimal>>("listaccounts", null);
+            }
         }
 
         /// <summary>
@@ -660,7 +706,10 @@ namespace CoiniumServ.Daemon
         /// <returns>The transaction ID if succesful.</returns>
         public string SendMany(string fromAccount, Dictionary<string, decimal> toBitcoinAddress, int minConf = 1, string comment = "")
         {
-            return MakeRequest<string>("sendmany", fromAccount, toBitcoinAddress, minConf, comment);
+            lock(_requestLock)
+            {
+                return MakeRequest<string>("sendmany", fromAccount, toBitcoinAddress, minConf, comment);
+            }
         }
 
         /// <summary>
@@ -760,7 +809,10 @@ namespace CoiniumServ.Daemon
         /// <returns></returns>
         public ValidateAddress ValidateAddress(string walletAddress)
         {
-            return MakeRequest<ValidateAddress>("validateaddress", walletAddress);
+            lock(_requestLock)
+            {
+                return MakeRequest<ValidateAddress>("validateaddress", walletAddress);
+            }
         }
 
         /// <summary>

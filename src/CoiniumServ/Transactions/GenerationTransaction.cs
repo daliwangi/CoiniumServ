@@ -150,7 +150,7 @@ namespace CoiniumServ.Transactions
                         new SignatureScript(
                             blockTemplate.Height,
                             blockTemplate.CoinBaseAux.Flags,
-                            TimeHelpers.NowInUnixTimestamp(),
+                            Relay.RelayManager.IsRelaying?(int)blockTemplate.CurTime:TimeHelpers.NowInUnixTimestamp(),  //added the IsRelaying part
                             (byte) extraNonce.ExtraNoncePlaceholder.Length,
                             "/CoiniumServ/")
                 }

@@ -45,12 +45,18 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
         private readonly IMySqlProvider _mySqlProvider;
 
         private readonly ILogger _logger;
+
+        private object _redisLock;
+
+        private object _shareLock;
         
         public HybridStorage(IEnumerable<IStorageProvider> providers, IDaemonClient daemonClient, IPoolConfig poolConfig)
         {
             _daemonClient = daemonClient;
             _logger = Log.ForContext<HybridStorage>().ForContext("Component", poolConfig.Coin.Name);
             _coin = poolConfig.Coin.Name.ToLower(); // pool's associated coin name.
+            _redisLock = new object();
+            _shareLock = new object();
 
             // try loading providers.
             try

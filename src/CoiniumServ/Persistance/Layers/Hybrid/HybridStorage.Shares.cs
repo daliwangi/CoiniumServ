@@ -24,10 +24,12 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Security.Cryptography;
 using CoiniumServ.Payments;
 using CoiniumServ.Persistance.Blocks;
 using CoiniumServ.Shares;
 using CoiniumServ.Utils.Helpers;
+using CoiniumServ.Utils.Extensions;
 using CoiniumServ.Server.Mining.Stratum;
 
 namespace CoiniumServ.Persistance.Layers.Hybrid
@@ -80,7 +82,17 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
                 // rename round.
                 var currentKey = string.Format("{0}:shares:round:current", _coin);
                 var roundKey = string.Format("{0}:shares:round:{1}", _coin, height);
-                _redisProvider.Client.Rename(currentKey, roundKey);
+                lock(_redisLock)
+                {
+                    if (_redisProvider.Client.Exists(currentKey))
+                    {
+                        _redisProvider.Client.Rename(currentKey, roundKey);
+                    }
+                    else
+                    {
+                        _logger.Information("Round key doesn't exist,check if any share has been submitted.");
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -104,13 +116,14 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
                 //_client.StartPipeTransaction(); // batch the commands as atomic.
 
                 // add shares to current round again.
-                foreach (var entry in _redisProvider.Client.HGetAll(round))
+                lock(_redisLock)
                 {
-                    _redisProvider.Client.HIncrByFloat(current, entry.Key, double.Parse(entry.Value, CultureInfo.InvariantCulture));
+                    foreach (var entry in _redisProvider.Client.HGetAll(round))
+                    {
+                        _redisProvider.Client.HIncrByFloat(current, entry.Key, double.Parse(entry.Value, CultureInfo.InvariantCulture));
+                    }
+                    _redisProvider.Client.Del(round); // delete the round shares.
                 }
-
-                _redisProvider.Client.Del(round); // delete the round shares.
-
                 //_client.EndPipe(); // execute the batch commands.
             }
             catch (Exception e)
@@ -127,8 +140,10 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
                     return;
 
                 var roundKey = string.Format("{0}:shares:round:{1}", _coin, round.Block.Height);
-
-                _redisProvider.Client.Del(roundKey); // delete the associated shares.            
+                lock(_redisLock)
+                {
+                    _redisProvider.Client.Del(roundKey); // delete the associated shares.
+                }
             }
             catch (Exception e)
             {
@@ -146,8 +161,11 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
                     return shares;
 
                 var key = string.Format("{0}:shares:round:{1}", _coin, "current");
-                var hashes = _redisProvider.Client.HGetAll(key);
-
+                Dictionary<string, string> hashes;
+                lock(_redisLock)
+                {
+                    hashes = _redisProvider.Client.HGetAll(key);
+                }
                 foreach (var hash in hashes)
                 {
                     shares.Add(hash.Key, double.Parse(hash.Value, CultureInfo.InvariantCulture));
@@ -184,6 +202,45 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
             }
 
             return shares;
+        }
+
+        //record every user's hashrate data.
+        public void RecordWholeDay(string Username,UInt64 hashrate)
+        {
+            int dataMinute = DateTime.Now.Minute;
+            int dataHour = DateTime.Now.Hour;
+            dataMinute = dataMinute - dataMinute % 5;
+            string dataTime = string.Format("{0}:{1}", dataHour, dataMinute);
+            string HashEntry = string.Format("{0}:{1}:hashrate", Username, _coin);
+            lock(_redisLock)
+            {
+                if (!_redisProvider.Client.HExists(HashEntry, dataTime))
+                {
+                    var value = string.Format("{0}:{1}", hashrate, TimeHelpers.NowInUnixTimestamp());
+                    _redisProvider.Client.HSet(HashEntry, dataTime, value);
+                }
+                else
+                {
+                    try
+                    {
+                        string addedTime = _redisProvider.Client.HGet(HashEntry, dataTime).Split(':')[1];
+                        int addedTimeInt = int.Parse(addedTime);
+                        if (TimeHelpers.NowInUnixTimestamp() - addedTimeInt > 300)  //check for obsolete value
+                        {
+                            var value = string.Format("{0}:{1}", hashrate, TimeHelpers.NowInUnixTimestamp());
+                            _redisProvider.Client.HSet(HashEntry, dataTime, value);
+                        }
+                    }
+                    catch (ArgumentOutOfRangeException e)
+                    {
+                        _logger.Debug("Can't get hashrate data added time,{0}", e.Message);
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.Debug("Unkown exception when getting hashrate data added time.", e.Message);
+                    }
+                }
+            }
         }
     }
 }

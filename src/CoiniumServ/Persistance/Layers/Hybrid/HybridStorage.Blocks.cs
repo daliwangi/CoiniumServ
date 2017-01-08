@@ -29,6 +29,7 @@ using CoiniumServ.Persistance.Query;
 using CoiniumServ.Shares;
 using CoiniumServ.Utils.Extensions;
 using CoiniumServ.Utils.Helpers;
+using CoiniumServ.Daemon.Responses;
 using Dapper;
 using MySql.Data.MySqlClient;
 
@@ -46,14 +47,44 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
                 using (var connection = new MySqlConnection(_mySqlProvider.ConnectionString))
                 {
                     connection.Execute(
-                        @"INSERT INTO Block(Height, BlockHash, TxHash, Amount, CreatedAt) VALUES (@height, @blockHash, @txHash, @amount, @createdAt)",
+                        @"INSERT INTO Block(Height, BlockHash, TxHash, Amount, CreatedAt, Reward) VALUES (@height, @blockHash, @txHash, @amount, @createdAt, @reward)",
                         new
                         {
                             height = share.Block.Height,
                             blockHash = share.BlockHash.ToHexString(),
                             txHash = share.Block.Tx.First(),
                             amount = (decimal)share.GenerationTransaction.TotalAmount,
-                            createdAt = share.Block.Time.UnixTimestampToDateTime()
+                            createdAt = share.Block.Time.UnixTimestampToDateTime(),
+                            reward = 0
+                        });
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.Error("An exception occured while adding block; {0:l}", e.Message);
+            }
+        }
+
+        public void AddBlock(Block block,decimal revenue)
+        {
+            try
+            {
+                if (!IsEnabled)
+                    return;
+
+                using (var connection = new MySqlConnection(_mySqlProvider.ConnectionString))
+                {
+                    connection.Execute(
+                        @"INSERT INTO Block(Height, BlockHash, TxHash, Amount, CreatedAt,IsRelayBlock,Reward) VALUES (@height, @blockHash, @txHash, @amount, @createdAt,@IsRelayBlock,@reward)",
+                        new
+                        {
+                            height = block.Height,
+                            blockHash = block.Hash,
+                            txHash = block.Tx.First(),
+                            amount = revenue,
+                            createdAt = block.Time.UnixTimestampToDateTime(),
+                            IsRelayBlock = 1,
+                            reward = 0
                         });
                 }
             }
@@ -225,7 +256,7 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
                 using (var connection = new MySqlConnection(_mySqlProvider.ConnectionString))
                 {
                     var results = connection.Query<PersistedBlock>(
-                        @"SELECT Height, Orphaned, Confirmed, Accounted, BlockHash, TxHash, Amount, Reward, CreatedAt 
+                        @"SELECT Height, Orphaned, Confirmed, Accounted, BlockHash, TxHash, Amount, Reward, CreatedAt, IsRelayBlock
                             FROM Block WHERE Orphaned = false AND Confirmed = false ORDER BY Height ASC"
                         );
 

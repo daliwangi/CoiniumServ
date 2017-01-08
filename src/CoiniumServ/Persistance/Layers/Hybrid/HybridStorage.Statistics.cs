@@ -40,8 +40,14 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
                     return hashrates;
 
                 var key = string.Format("{0}:hashrate", _coin);
+                string[] results;
 
-                var results = _redisProvider.Client.ZRangeByScore(key, since, double.PositiveInfinity);
+                lock(_redisLock)
+                {
+                    results = _redisProvider.Client.ZRangeByScore(key, since, double.PositiveInfinity);
+                    if (results == null)
+                        return hashrates;
+                }
 
                 foreach (var result in results)
                 {
@@ -65,18 +71,90 @@ namespace CoiniumServ.Persistance.Layers.Hybrid
 
         public void DeleteExpiredHashrateData(int until)
         {
+            if (!IsEnabled || !_redisProvider.IsConnected)
+                return;
+
+            lock (_redisLock)
+            {
+                try
+                {
+                    var key = string.Format("{0}:hashrate", _coin);
+                    _redisProvider.Client.ZRemRangeByScore(key, int.MinValue, until);
+                }
+                catch (Exception e)
+                {
+                    _logger.Error("An exception occured while deleting expired hashrate data: {0:l}", e.Message);
+                }
+            }
+        }
+
+        /// <summary>
+        /// if the query worker id is contained in the redis tuple,it is accounted.
+        /// </summary>
+        /// <param name="since"></param>
+        /// <param name="workerId"></param>
+        /// <returns></returns>
+        public UInt64 CalculateWorkerHashRate(int since, string workerId)
+        {
+            double workerHashrateData = 0;
             try
             {
                 if (!IsEnabled || !_redisProvider.IsConnected)
-                    return;
+                    return 0;
 
-                var key = string.Format("{0}:hashrate", _coin);
-                _redisProvider.Client.ZRemRangeByScore(key, double.NegativeInfinity, until);
+                string[] allHashrateTuples;
+                lock (_redisLock)
+                {
+                    var workerHashrateKey = string.Format("{0}:hashrate", _coin);
+                    allHashrateTuples = _redisProvider.Client.ZRangeByScore(workerHashrateKey, since, double.PositiveInfinity);
+                    if (allHashrateTuples == null)
+                    {
+                        _logger.Debug("Can't get hashrate data for user.");
+                        return 0;
+                    }
+                }
+                foreach (var tuple in allHashrateTuples)
+                {
+                    if (tuple.Contains(workerId))
+                    {
+                        var data = tuple.Split(':');
+                        var difficulty = double.Parse(data[0].Replace(',', '.'), CultureInfo.InvariantCulture);
+                        workerHashrateData += difficulty;
+                    }
+                }
             }
             catch (Exception e)
             {
-                _logger.Error("An exception occured while deleting expired hashrate data: {0:l}", e.Message);
+                _logger.Error("An exception occured while calculating worker hashrate: {0:l}", e.Message);
             }
+            var result = Convert.ToUInt64(workerHashrateData / 300);
+            return result;
+        }
+
+        public Dictionary<string,ulong> GetUserHashrateData(string UserName)
+        {
+            var Data = new Dictionary<string, ulong>();
+            lock (_redisLock)
+            {
+                var entry = string.Format("{0}:{1}:hashrate", UserName, _coin);
+                Dictionary<string, string> redisData;
+                redisData = _redisProvider.Client.HGetAll(entry);
+                foreach (var pair in redisData)
+                {
+                    var addedTime = int.Parse(pair.Value.Split(':')[1]);
+                    if (TimeHelpers.NowInUnixTimestamp() - addedTime > 86400)   //check for obsolete value in case that the miner has stopped mining.
+                    {
+                        _redisProvider.Client.HSet(entry,pair.Key,string.Format("0:{0}",TimeHelpers.NowInUnixTimestamp()));   //using async
+                        Data[pair.Key] = 0ul;
+                        continue;
+                    }
+                    else
+                    {
+                        Data[pair.Key] = ulong.Parse(pair.Value.Split(':')[0]);
+                    }
+                }
+            }
+            return Data;
         }
     }
 }

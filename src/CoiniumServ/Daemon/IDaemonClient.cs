@@ -32,6 +32,8 @@ namespace CoiniumServ.Daemon
 
         BlockTemplate GetBlockTemplate(string blockHex);
 
+        string GetBlockHash(long index);
+
         string SubmitBlock(string blockHex);
 
         Block GetBlock(string hash);

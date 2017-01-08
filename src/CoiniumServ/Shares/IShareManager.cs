@@ -33,8 +33,12 @@ namespace CoiniumServ.Shares
 
         IShare ProcessShare(IGetworkMiner miner, string data);
 
+        void PersistBlock(decimal revenue);
+
         event EventHandler BlockFound;
 
         event EventHandler ShareSubmitted;
+
+        void RecordWholeDayData(string UserName, UInt64 hashrate);
     }
 }

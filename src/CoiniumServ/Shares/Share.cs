@@ -62,7 +62,10 @@ namespace CoiniumServ.Shares
         public byte[] BlockHex { get; private set; }
         public byte[] BlockHash { get; private set; }
 
-        public Share(IStratumMiner miner, UInt64 jobId, IJob job, string extraNonce2, string nTimeString, string nonceString)
+        public int RelayXNonce1Size { get; private set; }
+
+        public Share(IStratumMiner miner, UInt64 jobId, IJob job, string extraNonce2, string nTimeString, string nonceString, 
+            int relayXNonce1Size = 4)
         {
             Miner = miner;
             JobId = jobId;
@@ -84,7 +87,7 @@ namespace CoiniumServ.Shares
                 return;
             }
             ExtraNonce2 = Convert.ToUInt32(extraNonce2, 16); // set extraNonce2 for the share.
-            
+
             // check size of miner supplied nTime.
             if (nTimeString.Length != 8)
             {
@@ -92,9 +95,9 @@ namespace CoiniumServ.Shares
                 return;
             }
             NTime = Convert.ToUInt32(nTimeString, 16); // read ntime for the share
-            
+
             // make sure NTime is within range.
-            if (NTime < job.BlockTemplate.CurTime || NTime > submitTime + 7200)
+            if (NTime < Convert.ToUInt32(job.NTime, 16) || NTime > submitTime + 7200)
             {
                 Error = ShareError.NTimeOutOfRange;
                 return;
@@ -109,8 +112,20 @@ namespace CoiniumServ.Shares
             Nonce = Convert.ToUInt32(nonceString, 16); // nonce supplied by the miner for the share.
 
             // set job supplied parameters.
-            Height = job.BlockTemplate.Height; // associated job's block height.
-            ExtraNonce1 = miner.ExtraNonce; // extra nonce1 assigned to miner.
+            Height = job.Height; // associated job's block height.
+
+            string ExtraNonce1String;
+
+            if (job.RelayId!=null)
+            {
+                ExtraNonce1String = miner.ExtraNonce.Substring(0, miner.ExtraNonce.Length - 4);
+                CoinbaseBuffer = Serializers.SerializeCoinbase(Job, ExtraNonce1String, ExtraNonce2);
+            }
+            else
+            {
+                ExtraNonce1 = Convert.ToUInt32(miner.ExtraNonce, 16);
+                CoinbaseBuffer = Serializers.SerializeCoinbase(Job, ExtraNonce1, ExtraNonce2);
+            }
 
             // check for duplicate shares.
             if (!Job.RegisterShare(this)) // try to register share with the job and see if it's duplicated or not.
@@ -119,8 +134,6 @@ namespace CoiniumServ.Shares
                 return;
             }
 
-            // construct the coinbase.
-            CoinbaseBuffer = Serializers.SerializeCoinbase(Job, ExtraNonce1, ExtraNonce2); 
             CoinbaseHash = Coin.Coinbase.Utils.HashCoinbase(CoinbaseBuffer);
 
             // create the merkle root.
@@ -138,7 +151,7 @@ namespace CoiniumServ.Shares
             BlockDiffAdjusted = Job.Difficulty * Job.HashAlgorithm.Multiplier;
 
             // check if block candicate
-            if (Job.Target >= HeaderValue)
+            if (Job.Target >= HeaderValue && string.IsNullOrEmpty(Job.RelayId))
             {
                 IsBlockCandidate = true;
                 BlockHex = Serializers.SerializeBlock(Job, HeaderBuffer, CoinbaseBuffer, miner.Pool.Config.Coin.Options.IsProofOfStakeHybrid);
@@ -150,7 +163,7 @@ namespace CoiniumServ.Shares
                 BlockHash = HeaderBuffer.DoubleDigest().ReverseBuffer();
 
                 // Check if share difficulty reaches miner difficulty.
-                var lowDifficulty = Difficulty/miner.Difficulty < 0.99; // share difficulty should be equal or more then miner's target difficulty.
+                var lowDifficulty = Difficulty / miner.Difficulty < 0.99; // share difficulty should be equal or more then miner's target difficulty.
 
                 if (!lowDifficulty) // if share difficulty is high enough to match miner's current difficulty.
                     return; // just accept the share.

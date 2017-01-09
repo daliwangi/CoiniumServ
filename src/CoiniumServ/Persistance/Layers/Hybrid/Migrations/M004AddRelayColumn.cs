@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using FluentMigrator;
 
-namespace LGSV.Persistance.Layers.Hybrid.Migrations
+namespace CoiniumServ.Persistance.Layers.Hybrid.Migrations
 {
     /// <summary>
     /// add a column named IsRelayBlock

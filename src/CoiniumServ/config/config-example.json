@@ -50,5 +50,34 @@
                 "level": "verbose"
             }
         ]
-    }
+    },
+	"relay":{
+	   "partial":false,
+	   "targetnodes": [
+           {
+		       "enabled":true,
+			   "url":"stratum.mining.eligius.st",
+			   "port":3334,
+		       "workerid":"16FJPNwXb8KQLbjiHzYkXY27KSW9GKR4eD",
+			   "password":"123",
+			   "refreshInterval":3000
+			},
+           {
+		       "enabled":true,
+			   "url":"sg.stratum.bitcoin.cz:3333",
+			   "port":3333,
+		       "workerid":"daliwangi.worker1",
+			   "password":"x",
+			   "refreshInterval":3000
+			},
+           {
+		       "enabled":true,
+			   "url":"us1.ghash.io",
+			   "port":3333,
+		       "workerid":"daliwangi.217",
+			   "password":"x",
+			   "refreshInterval":3000
+			}
+	    ]
+	}
 } 

@@ -1,17 +1,17 @@
 {
-    "enabled": false,
-    "coin": "litecoin.json",
+    "enabled": true,
+    "coin": "bitcoin.json",
     "daemon": {
-        "port": 9333,
-        "username": "user",
-        "password": "password"
+        "port": 8333,
+        "username": "bitcoin-daemon-username",
+        "password": "bitcoin-daemon-password"
     },
     "wallet": {
-        "address": "n3Mvrshbf4fMoHzWZkDVbhhx4BLZCcU9oY"
+        "address": "16FJPNwXb8KQLbjiHzYkXY27KSW9GKR4eD"
     },
     "rewards": [
         {
-            "myxWybbhUkGzGF7yaf2QVNx3hh3HWTya5t": 1
+            "16FJPNwXb8KQLbjiHzYkXY27KSW9GKR4eD": 0
         }
     ],
     "stratum": {
@@ -19,6 +19,11 @@
     },
     "storage": {
         "hybrid": {
+            "mysql": {
+                "database": "dbname"
+            }
+        },
+        "mpos": {
             "mysql": {
                 "database": "dbname"
             }

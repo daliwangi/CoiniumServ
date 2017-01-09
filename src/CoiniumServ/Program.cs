@@ -66,6 +66,10 @@ namespace CoiniumServ
             // load the config-manager.
             configFactory.GetConfigManager();
 
+            //load the relay manager.
+            //the relay config object is already instantiated previously in GetConfigManager()->LoadGlobalConfig()
+            objectFactory.GetRelayManager();
+
             // create logger to be used later.
             _logger = Log.ForContext<Program>();
 
@@ -119,14 +123,16 @@ namespace CoiniumServ
         {
             var exception = e.ExceptionObject as Exception;
 
+            _logger.Debug("Unhandled Exception Caught,message:{0},source:{1},trace:{2}",
+                exception.Message, exception.Source, exception.StackTrace);
+
             if (exception == null) // if we can't get the exception, whine about it.
                 throw new ArgumentNullException("e");
 
             if (e.IsTerminating)
             {
                 _logger.Fatal(exception, "Terminating because of unhandled exception!");
-#if !DEBUG 
-                // prevent console window from being closed when we are in development mode.
+#if DEBUG
                 Environment.Exit(-1);
 #endif
             }

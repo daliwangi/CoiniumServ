@@ -165,9 +165,9 @@ namespace CoiniumServ.Container
 
         IBittrexClient GetBittrexClient();
 
-        ICryptsyClient GetCryptsyClient();
+        IBlockchainClient GetBlockchainClient();
 
-        IPoloniexClient GetPoloniexClient();
+        IBitstampClient GetBitstampClient();
 
         #endregion
 

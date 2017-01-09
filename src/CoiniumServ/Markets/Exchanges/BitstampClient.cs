@@ -26,56 +26,41 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.CSharp.RuntimeBinder;
 using Serilog;
 
 namespace CoiniumServ.Markets.Exchanges
 {
-    public class BittrexClient: ExchangeApi, IBittrexClient
+    public class BitstampClient : ExchangeApi, IBitstampClient
     {
-        private const string ApiBase = "https://bittrex.com/api/v1.1/";
+        private const string ApiBase = "https://www.bitstamp.net/api/v2/ticker/";
+        private const string PublicApiEndpoint = "btcusd";
 
         private readonly ILogger _logger;
 
-        public BittrexClient()
+        public BitstampClient()
         {
-            _logger = Log.ForContext<BittrexClient>();
+            _logger = Log.ForContext<BitstampClient>();
         }
 
         public async Task<IList<IMarketData>> GetMarkets()
         {
             var list = new List<IMarketData>();
-            var data = await Request(ApiBase, "public/getmarketsummaries");
+
+            var data = await Request(ApiBase, PublicApiEndpoint);
 
             try
             {
-                foreach (var market in data.@result)
+                var entry = new MarketData
                 {
-                    try
-                    {
-                        string name = market.MarketName;
-                        var temp = name.Split('-');
-
-                        var entry = new MarketData
-                        {
-                            Exchange = Exchange.Bittrex,
-                            MarketCurrency = temp.Last().ToUpperInvariant(),
-                            BaseCurrency = temp.First().ToUpperInvariant(),
-                            Ask = double.Parse(market.Ask,CultureInfo.InvariantCulture),
-                            Bid = double.Parse(market.Bid,CultureInfo.InvariantCulture),
-                            VolumeInMarketCurrency = market.Volume,
-                            VolumeInBaseCurrency = market.BaseVolume
-                        };
-
-                        list.Add(entry);
-                    }
-                    catch (RuntimeBinderException)
-                    { } // just skip the exception that occurs when a field can not be read.
-                    catch (Exception e)
-                    {
-                        _logger.Error(e.Message);
-                    }
-                }
+                    Exchange = Exchange.Poloniex,
+                    MarketCurrency = "USD",
+                    BaseCurrency = "BTC",
+                    Ask = double.Parse(data.ask),
+                    Bid = double.Parse(data.bid),
+                    VolumeInMarketCurrency = double.Parse(data.volume) * double.Parse(data.last),
+                    VolumeInBaseCurrency = double.Parse(data.volume),
+                };
+                list.Add(entry);
             }
             catch (Exception e)
             {

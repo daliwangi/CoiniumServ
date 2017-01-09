@@ -75,8 +75,8 @@ namespace CoiniumServ.Container.Registries
 
             // markets
             _applicationContext.Container.Register<IBittrexClient, BittrexClient>().AsSingleton();
-            _applicationContext.Container.Register<ICryptsyClient, CryptsyClient>().AsSingleton();
-            _applicationContext.Container.Register<IPoloniexClient, PoloniexClient>().AsSingleton();
+            _applicationContext.Container.Register<IBlockchainClient, BlockchainClient>().AsSingleton();
+            _applicationContext.Container.Register<IBitstampClient, BitstampClient>().AsSingleton();
 
             // web
             _applicationContext.Container.Register<INancyBootstrapper, NancyBootstrapper>().AsSingleton();

@@ -31,48 +31,38 @@ using Serilog;
 
 namespace CoiniumServ.Markets.Exchanges
 {
-    public class CryptsyClient : ExchangeApi, ICryptsyClient
+    public class BlockchainClient : ExchangeApi, IBlockchainClient
     {
-        private const string PublicApiBase = "http://pubapi.cryptsy.com/";        
-        private const string PublicApiEndpoint = "api.php";
-        private const string PrivateApiBase = " https://api.cryptsy.com/";
-        private const string PrivateApiEndpoint = "api";
+        private const string PublicApiBase = "https://blockchain.info/";        
+        private const string PublicApiEndpoint = "ticker";
 
         private readonly ILogger _logger;
 
-        public CryptsyClient()
+        public BlockchainClient()
         {
-            _logger = Log.ForContext<CryptsyClient>();
+            _logger = Log.ForContext<BlockchainClient>();
         }
 
         public async Task<IList<IMarketData>> GetMarkets()
         {
             var list = new List<IMarketData>();
 
-            var @params = new Dictionary<string, string>
-            {
-                {"method", "marketdatav2"}
-            };
-
-            var data = await Request(PublicApiBase, PublicApiEndpoint, @params);
+            var data = await Request(PublicApiBase, PublicApiEndpoint);
 
             try
             {
-                foreach (var kvp in data.@return.markets)
+                foreach (KeyValuePair<string,dynamic> currency in data)
                 {
                     try
                     {
-                        var buyOrders = (IList<dynamic>) kvp.Value.buyorders;
-                        var sellOrders = (IList<dynamic>) kvp.Value.sellorders;
-
                         var entry = new MarketData
                         {
                             Exchange = Exchange.Cryptsy,
-                            MarketCurrency = kvp.Value.primarycode.ToUpperInvariant(),
-                            BaseCurrency = kvp.Value.secondarycode.ToUpperInvariant(),
-                            Ask = double.Parse(sellOrders.First().price, CultureInfo.InvariantCulture),
-                            Bid = double.Parse(buyOrders.First().price, CultureInfo.InvariantCulture),
-                            VolumeInMarketCurrency = double.Parse(kvp.Value.volume, CultureInfo.InvariantCulture),
+                            MarketCurrency = currency.Key,
+                            BaseCurrency = "BTC",
+                            Ask = currency.Value.sell,
+                            Bid = currency.Value.buy,
+                            VolumeInMarketCurrency = double.NaN,
                         };
                         list.Add(entry);
                     }

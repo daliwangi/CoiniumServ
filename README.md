@@ -64,6 +64,8 @@ Here is a list of our generous donors that keep the project ongoing;
 * __Modular & Flexible__; Designed to be modular since day one so that you can implement your very own ideas.
 * __Free & Open-Source__; Best of all CoiniumServ is open source and free-to-use. You can get it running for free in minutes.
 * __Easy to Setup__; We got your back covered with our [guides & how-to's](https://github.com/bonesoul/CoiniumServ/wiki).
+* __Upstream stratum pool work relay__; Set your upstream pool account in the config file(see the example files),then the miners who
+is connected to your pool can get the upstream pool's work to mine,while getting the profits according to their individual contributions while your pool's hashrate is low.
 
 ##### General
 

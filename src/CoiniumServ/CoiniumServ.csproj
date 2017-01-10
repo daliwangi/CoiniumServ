@@ -58,6 +58,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\build\packages\CryptSharpOfficial.2.0.0.0\lib\CryptSharp.dll</HintPath>
     </Reference>
+    <Reference Include="csredis, Version=3.2.1.0, Culture=neutral, PublicKeyToken=1afd0264bbe4a44a, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\build\packages\csredis.3.2.1\lib\net40\csredis.dll</HintPath>
+    </Reference>
     <Reference Include="Dapper, Version=1.37.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\build\packages\Dapper.1.37\lib\net45\Dapper.dll</HintPath>
@@ -159,18 +163,19 @@
     <Compile Include="Coin\Config\ICoinOptions.cs" />
     <Compile Include="Markets\Exchanges\BittrexClient.cs" />
     <Compile Include="Markets\Exchanges\ExchangeApi.cs" />
-    <Compile Include="Markets\Exchanges\CryptsyClient.cs" />
+    <Compile Include="Markets\Exchanges\BlockchainClient.cs" />
     <Compile Include="Markets\Exchange.cs" />
     <Compile Include="Markets\Exchanges\IBittrexClient.cs" />
-    <Compile Include="Markets\Exchanges\ICryptsyClient.cs" />
+    <Compile Include="Markets\Exchanges\IBlockchainClient.cs" />
     <Compile Include="Markets\Exchanges\IExchangeClient.cs" />
-    <Compile Include="Markets\Exchanges\IPoloniexClient.cs" />
-    <Compile Include="Markets\Exchanges\PoloniexClient.cs" />
+    <Compile Include="Markets\Exchanges\IBitstampClient.cs" />
+    <Compile Include="Markets\Exchanges\BitstampClient.cs" />
     <Compile Include="Markets\IMarketData.cs" />
     <Compile Include="Markets\IMarketsConfig.cs" />
     <Compile Include="Markets\MarketData.cs" />
     <Compile Include="Markets\MarketsConfig.cs" />
     <Compile Include="Persistance\Layers\Hybrid\Migrations\M003FixDefaults.cs" />
+    <Compile Include="Persistance\Layers\Hybrid\Migrations\M004AddRelayColumn.cs" />
     <Compile Include="Pools\IProfitInfo.cs" />
     <Compile Include="Pools\ProfitInfo.cs" />
     <Compile Include="Relay\IRelayConfig.cs" />
@@ -1001,10 +1006,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\deps\csredis\CSRedis\CSRedis.csproj">
-      <Project>{d35e185e-a7e1-41e1-846c-21944f56074f}</Project>
-      <Name>CSRedis</Name>
-    </ProjectReference>
     <ProjectReference Include="..\libCoiniumServ\libCoiniumServ.csproj">
       <Project>{f908636c-bc75-4b93-a774-e4878f3d39af}</Project>
       <Name>libCoiniumServ</Name>
